@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title></title>
+    <link rel="stylesheet" href="//g.alicdn.com/msui/sm/0.6.2/css/sm.min.css">
+    <style>
+        .item-content {
+            padding: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-group">
+        <div class="page page-current" id="page-list">
+            <header class="bar bar-nav">
+                <h1 class="title">SUI Ajax底部无限滚动</h1>
+            </header>
+            <div id="sss" class="content infinite-scroll infinite-scroll-bottom" data-distance="30">
+                <div class="list-block">
+                    <ul class="list-container"></ul>
+                </div>
+                <div class="infinite-scroll-preloader">
+                    <div class="preloader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- zepto.js -->
+    <script type='text/javascript' src='//g.alicdn.com/sj/lib/zepto/zepto.min.js' charset='utf-8'></script>
+    <!-- SUI main -->
+    <script type='text/javascript' src='//g.alicdn.com/msui/sm/0.6.2/js/sm.min.js' charset='utf-8'></script>
+    <script>
+        $(document).on('pageInit', function(e, pageId, $page){
+            if (pageId=='page-list') {
+
+                var loading = false, // 加载状态标记
+                    itemsPerload = 10, // 单次加载的量
+                    // maxItems = 38;
+                    maxItems = 0;
+                // 添加数据
+                function addItems(data) {
+                    var html = '';
+                    data.forEach(function(e, i){
+                        html += '<li class="item-content"><div class="item-inner"><div class="item-title">'+ e.uname +'</div></div></li>';
+                    });
+                    $('.list-container').append(html);
+                }
+                // 获取数据
+                $.ajax({
+                    url: 'name.php',
+                    type: 'GET',
+                    data: {
+                        startIndex: 0,
+                        addNum: itemsPerload
+                    },
+                    success: getData
+                });
+
+                function getData(res) {
+                    res = JSON.parse(res);
+                    console.log(res);
+                    loading = false;
+
+                    addItems(res.users);
+                    lastIndex = $('.list-container li').length;
+                    // 可加载的总数据量
+                    maxItems = res.usersLen;
+                }
+
+                var lastIndex = itemsPerload; // 最后加载的序号, 初始化加载10条信息
+
+                // 触发无限滚动事件
+                $($page).on('infinite', function() {
+                    console.log(loading+', length: '+maxItems);
+                    // 如果正在加载则退出
+                    if(loading) return;
+                    // 否则设置当前正在加载
+                    loading = true;
+
+                    if (lastIndex >= maxItems) {
+                        $.toast("没有更多数据了");
+                        // 删除加载提示符
+                        $('.infinite-scroll-preloader').remove();
+                        // 加载完毕，则注销无限加载事件，以防不必要的加载
+                        $.detachInfiniteScroll($('.infinite-scroll'));
+                        console.log('---end---');
+                        return;
+                    }
+
+                    $.ajax({
+                        url: 'name.php',
+                        type: 'GET',
+                        data: {
+                            startIndex: lastIndex,
+                            addNum: itemsPerload
+                        },
+                        success: function(res) {
+                            getData(res);
+                            // // 更新最后加载的序号
+                            lastIndex = $('.list-container li').length;
+                            // //容器发生改变,如果是js滚动，需要刷新滚动
+                            $.refreshScroller();
+                        }
+                    });
+                })
+            }
+        })
+        $.init();
+    </script>
+</body>
+</html>
